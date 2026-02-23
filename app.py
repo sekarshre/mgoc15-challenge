@@ -8,7 +8,7 @@ HOW TO DEPLOY:
 4. Share the URL with students on class day
 
 HOW TO RUN LOCALLY:
-  pip install streamlit pandas gspread google-auth --break-system-packages
+  pip install streamlit pandas --break-system-packages
   streamlit run app.py
 """
 
@@ -144,6 +144,56 @@ st.set_page_config(
 )
 
 init_state()
+
+
+# ============================================================
+# ADMIN PAGE — Secret download route
+# ============================================================
+# Access by adding ?admin=mgoc15 to the URL (change the password below)
+
+ADMIN_PASSWORD = "mgoc15"  # ← Change this to any secret word you like
+
+query_params = st.query_params
+if query_params.get("admin") == ADMIN_PASSWORD:
+    st.title("🔐 Admin — Download Responses")
+    st.markdown("---")
+
+    if Path(RESPONSES_FILE).exists():
+        import io
+        with open(RESPONSES_FILE, "r") as f:
+            csv_data = f.read()
+        num_lines = csv_data.count("\n") - 1  # minus header
+        st.metric("Total logged events", num_lines)
+
+        # Filter to just final allocations for a clean download
+        reader = csv.DictReader(io.StringIO(csv_data))
+        alloc_rows = [r for r in reader if r.get("event_type") == "allocation_final"]
+        st.metric("Final allocation submissions", len(alloc_rows))
+
+        st.markdown("### Download all responses (full log)")
+        st.download_button(
+            "📥 Download Full CSV",
+            data=csv_data,
+            file_name=f"mgoc15_responses_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
+        )
+
+        if alloc_rows:
+            st.markdown("### Download final allocations only")
+            alloc_output = io.StringIO()
+            writer = csv.DictWriter(alloc_output, fieldnames=alloc_rows[0].keys())
+            writer.writeheader()
+            writer.writerows(alloc_rows)
+            st.download_button(
+                "📥 Download Allocations Only",
+                data=alloc_output.getvalue(),
+                file_name=f"mgoc15_allocations_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                mime="text/csv",
+            )
+    else:
+        st.warning("No responses recorded yet.")
+
+    st.stop()
 
 
 # ============================================================
