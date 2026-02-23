@@ -27,7 +27,6 @@ from pathlib import Path
 CORRECT_ANSWERS = {
     "c0": {
         "a": "Television",
-        "b": "Television",
     },
     "c1": {
         "a": "YouTube",
@@ -125,6 +124,7 @@ def init_state():
         "student_name": "",
         "student_id": "",
         "current_challenge": 0,  # 0, 1, 2, 3, or 4 (4 = allocation page)
+        "max_challenge": 0,  # highest challenge reached (for back-navigation)
         "attempts": {"c0": 0, "c1": 0, "c2": 0, "c3": 0},
         "c3_submitted_pairs": [],
     }
@@ -233,13 +233,30 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### Progress")
     challenges = ["Challenge 0", "Challenge 1", "Challenge 2", "Challenge 3", "Allocation"]
+
+    # Track which challenge the student has actually reached (highest unlocked)
+    if "max_challenge" not in st.session_state:
+        st.session_state.max_challenge = st.session_state.current_challenge
+    st.session_state.max_challenge = max(
+        st.session_state.max_challenge, st.session_state.current_challenge
+    )
+
     for i, label in enumerate(challenges):
         if i < st.session_state.current_challenge:
-            st.markdown(f"✅ {label}")
+            # Completed — clickable button to revisit
+            if st.button(f"✅ {label}", key=f"nav_{i}"):
+                st.session_state.current_challenge = i
+                st.rerun()
         elif i == st.session_state.current_challenge:
             st.markdown(f"➡️ **{label}** ← you are here")
+        elif i <= st.session_state.max_challenge:
+            # Previously reached but navigated back — allow forward to here
+            if st.button(f"✅ {label}", key=f"nav_{i}"):
+                st.session_state.current_challenge = i
+                st.rerun()
         else:
             st.markdown(f"🔒 {label}")
+
     st.markdown("---")
     st.markdown("### Conditions (from the board)")
     st.markdown(
@@ -350,12 +367,14 @@ def render_challenge(
                         "c0": (
                             "Try asking AI:\n\n"
                             "```\n"
-                            "# Check missing % by channel\n"
-                            "df.groupby('channel')['revenue'].apply(lambda x: x.isna().mean())\n\n"
                             "# Compare ROI before and after zero-fill\n"
                             "df['roi_original'] = df['revenue'] / df['cost']\n"
                             "df['revenue_filled'] = df['revenue'].fillna(0)\n"
-                            "df['roi_filled'] = df['revenue_filled'] / df['cost']\n"
+                            "df['roi_filled'] = df['revenue_filled'] / df['cost']\n\n"
+                            "# Compare averages by channel\n"
+                            "before = df.groupby('channel')['roi_original'].mean()\n"
+                            "after = df.groupby('channel')['roi_filled'].mean()\n"
+                            "print(before - after)  # Which channel dropped the most?\n"
                             "```"
                         ),
                         "c1": (
@@ -400,20 +419,16 @@ if st.session_state.current_challenge == 0:
             "The `revenue` column has missing values — campaigns where revenue was never recorded. "
             "Missing data is rarely random. Your first job: figure out how bad the problem is "
             "and what it does to your numbers.\n\n"
-            "Use AI to write code that investigates the missing values in the `revenue` column."
+            "Compute the average ROI (revenue ÷ cost) for each channel two ways: first ignoring "
+            "missing values entirely, then filling all missing revenue with zero and recomputing. "
+            "Compare the results."
         ),
         questions=[
             {
                 "key": "a",
-                "label": "Question A: Which channel has the highest percentage of missing revenue values?",
-                "options": CHANNELS,
-            },
-            {
-                "key": "b",
                 "label": (
-                    "Question B: Compute average ROI (revenue ÷ cost) ignoring missing values, "
-                    "then fill all missing revenue with zero and recompute. "
-                    "Which channel's average ROI drops the most?"
+                    "Which channel's average ROI drops the most when you fill missing revenue "
+                    "with zero instead of ignoring it?"
                 ),
                 "options": CHANNELS,
             },
