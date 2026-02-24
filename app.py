@@ -30,22 +30,20 @@ CORRECT_ANSWERS = {
     },
     "c1": {
         "a": "YouTube",
-        "b": "Television",
+        "b": "Spread the budget across many Small campaigns",
     },
     "c2": {
-        "a": "Television",
+        "a": "YouTube",
         "b": "Email Newsletter",
     },
 }
 
 # Correct answers for Challenge 3
-# Pair 1 must be exact. Pairs 2–5 must all be in the correct set (any order).
+# Pair 1 must be exact. Pairs 2–3 must both be in the correct set (any order).
 C3_PAIR1 = ("Podcasts", "Working Parents")
-C3_PAIRS_2_TO_5 = {
+C3_PAIRS_2_TO_3 = {
     ("YouTube", "Young Professionals"),
-    ("YouTube", "Sports Enthusiasts"),
     ("Email Newsletter", "Retirees"),
-    ("Email Newsletter", "Working Parents"),
 }
 
 CHANNELS = ["Podcasts", "Television", "YouTube", "Email Newsletter"]
@@ -72,23 +70,23 @@ INSIGHTS = {
         "competitive until you counted its failures. **Use zero-filled revenue for the rest of your analysis.**"
     ),
     "c1": (
-        "🔑 **Insight from Challenge 1 — Trends Matter:** "
-        "YouTube has been climbing steadily. Television has been sliding. If you average across all history, "
-        "you dilute YouTube's recent strength and mask Television's decline. "
-        "**Recent data is a better predictor of next quarter than all-time averages.**"
+        "🔑 **Insight from Challenge 1 — Don't Put All Your Eggs in One Basket:** "
+        "YouTube has the highest median ROI. But a portfolio of Small campaigns across all channels "
+        "beats Large campaigns on even the best channel. Concentration destroys value. "
+        "**Spread your budget across many pairs rather than going all-in on a few.**"
     ),
     "c2": (
-        "🔑 **Insight from Challenge 2 — Context Changes Everything:** "
-        "Television collapses under heavy competition — its ad slots are auction-based, so intense competition "
-        "inflates prices dramatically. Email Newsletter barely notices because it doesn't compete for the same "
-        "attention space. Email Newsletter also performs especially well in Canadian markets. "
-        "**With competitor intensity at 8/10 and a 65% Canadian footprint, these differences matter enormously.**"
+        "🔑 **Insight from Challenge 2 — Trends and Context Matter:** "
+        "YouTube has been climbing steadily. Television has been sliding. If you average across all history, "
+        "you dilute YouTube's recent strength and mask Television's decline. "
+        "Email Newsletter also benefits significantly from a Canadian-heavy footprint. "
+        "**Recent data is a better predictor of next quarter than all-time averages, and geography matters.**"
     ),
     "c3": (
         "🔑 **Insight from Challenge 3 — Synthesis:** "
         "The pairs that perform best under NorthStar's specific conditions are very different from the pairs "
         "that look best on naive platform-wide averages. The analysis you just ran — combining survivorship "
-        "correction, trend awareness, competition sensitivity, and regional focus — is exactly the kind of "
+        "correction, diversification awareness, trend analysis, and regional focus — is exactly the kind of "
         "layered thinking that separates a good analyst from someone who just asks AI for the answer."
     ),
 }
@@ -312,8 +310,7 @@ with st.sidebar:
     st.markdown(
         "- Budget: **$100,000**\n"
         "- Competitor intensity: **8/10**\n"
-        "- Regional mix: **65% Canada, 35% US**\n"
-        "- Minimum per pair: **$3,000**"
+        "- Regional mix: **65% Canada, 35% US**"
     )
 
 
@@ -428,29 +425,46 @@ def render_challenge(
                             "```"
                         ),
                         "c1": (
-                            "Try asking AI to create a line chart of average ROI by channel for each quarter. "
-                            "Look at which line is climbing and which is falling.\n\n"
+                            "For Question A, compute the median ROI by channel using zero-filled revenue.\n\n"
+                            "For Question B, compare these two numbers:\n"
+                            "- The median ROI of **Large** campaigns on the best channel\n"
+                            "- The median ROI of **Small** campaigns across all four channels combined\n\n"
                             "```\n"
                             "df['roi'] = df['revenue_filled'] / df['cost']\n"
-                            "df.groupby(['quarter','channel'])['roi'].mean().unstack('channel').plot()\n"
+                            "# Q1A:\n"
+                            "df.groupby('channel')['roi'].median()\n\n"
+                            "# Q1B:\n"
+                            "best = 'YouTube'  # or whichever you found above\n"
+                            "large_best = df[(df['channel']==best) & (df['budget_tier']=='Large (>$20K)')]['roi'].median()\n"
+                            "small_all = df[df['budget_tier']=='Small (<$5K)']['roi'].median()\n"
+                            "print(f'Large on best: {large_best:.4f}, Small all: {small_all:.4f}')\n"
                             "```"
                         ),
                         "c2": (
-                            "For Question A, compare each channel's ROI under low competition (≤ 3) vs. high (≥ 7). "
-                            "For Question B, filter to Canadian regions (Ontario, British Columbia, Quebec, Alberta) "
-                            "and compare each channel's ROI there vs. its overall average.\n\n"
+                            "For Question A, create a line chart of average ROI by channel for each quarter. "
+                            "Look at which line is climbing and which is falling.\n\n"
+                            "For Question B, compute each channel's average ROI using only Canadian regions "
+                            "(Ontario, British Columbia, Quebec, Alberta), then compare that to each channel's "
+                            "overall average ROI. The channel with the biggest positive difference benefits "
+                            "the most from a Canadian footprint.\n\n"
                             "```\n"
-                            "low = df[df['competitor_intensity'] <= 3]\n"
-                            "high = df[df['competitor_intensity'] >= 7]\n"
-                            "# Compare: high.groupby('channel')['roi'].mean() vs low\n"
+                            "# Q2A:\n"
+                            "df.groupby(['quarter','channel'])['roi'].mean().unstack('channel').plot()\n\n"
+                            "# Q2B:\n"
+                            "canadian = ['Ontario', 'British Columbia', 'Quebec', 'Alberta']\n"
+                            "overall = df.groupby('channel')['roi'].mean()\n"
+                            "canada_only = df[df['region'].isin(canadian)].groupby('channel')['roi'].mean()\n"
+                            "print(canada_only - overall)\n"
                             "```"
                         ),
                         "c3": (
                             "Think about what you learned in Challenges 0–2. What filters would create a subset "
-                            "of the data that best matches NorthStar's conditions next quarter? Consider:\n"
-                            "- What did you learn about missing data?\n"
-                            "- What did you learn about trends over time?\n"
-                            "- What did you learn about competition and geography?"
+                            "of the data that best matches NorthStar's conditions next quarter? Consider:\n\n"
+                            "- What did you learn about missing data? How should you handle it?\n"
+                            "- What did you learn about campaign size? Should you weight all budget tiers equally?\n"
+                            "- What did you learn about trends over time? Should you use all 12 quarters equally?\n"
+                            "- What did you learn about geography? How does Canada affect different channels?\n\n"
+                            "Apply those lessons, then group by channel + demographic and rank by median ROI."
                         ),
                     }
                     st.markdown(hints.get(challenge_key, "Review your earlier insights."))
@@ -495,23 +509,35 @@ if st.session_state.current_challenge == 0:
 if st.session_state.current_challenge == 1:
     render_challenge(
         challenge_key="c1",
-        title='Challenge 1 — "Spot the Shift"',
+        title='Challenge 1 — "The Big Picture"',
         description=(
-            "Averages across two years of data treat every quarter equally. But channels don't stand still — "
-            "some are growing, some are fading.\n\n"
-            "If you're planning for *next* quarter, you need to know which direction things are heading.\n\n"
-            "Investigate how each channel's ROI has changed over the 12 quarters in the dataset."
+            "Now that you've corrected for missing data, it's time to see which channels are "
+            "actually delivering the best returns — and whether concentrating your budget is "
+            "a smart strategy.\n\n"
+            "Use your **zero-filled revenue** (from Challenge 0) for all ROI calculations going forward."
         ),
         questions=[
             {
                 "key": "a",
-                "label": "Question A: Which channel has shown the strongest improvement in ROI over the past 12 quarters?",
+                "label": (
+                    "Question A: Using zero-filled revenue, compute the median ROI "
+                    "(revenue ÷ cost) for each channel. Which channel has the highest median ROI?"
+                ),
                 "options": CHANNELS,
             },
             {
                 "key": "b",
-                "label": "Question B: Which channel has declined the most over the same period?",
-                "options": CHANNELS,
+                "label": (
+                    "Question B: Your manager wants to go all-in on the best channel with a few "
+                    "Large campaigns. You think it's smarter to spread the budget across many "
+                    "Small campaigns. Filter the data to Large campaigns on the best channel and "
+                    "compute the median ROI. Then filter to Small campaigns across ALL four channels "
+                    "combined and compute the median ROI. Which strategy earns more per dollar spent?"
+                ),
+                "options": [
+                    "Go all-in on the best channel with Large campaigns",
+                    "Spread the budget across many Small campaigns",
+                ],
             },
         ],
         correct_answers_dict=CORRECT_ANSWERS["c1"],
@@ -527,28 +553,32 @@ if st.session_state.current_challenge == 1:
 if st.session_state.current_challenge == 2:
     render_challenge(
         challenge_key="c2",
-        title='Challenge 2 — "Know Your Battlefield"',
+        title='Challenge 2 — "Spot the Shift"',
         description=(
-            "NorthStar's upcoming quarter has specific conditions: high competitor intensity and a "
-            "footprint heavily weighted toward Canada.\n\n"
-            "Not all channels respond the same way to competition, and not all channels perform equally "
-            "across regions.\n\n"
-            "Investigate how competitor intensity and geography affect each channel's performance."
+            "Averages across two years of data treat every quarter equally. But channels don't stand still — "
+            "some are growing, some are fading.\n\n"
+            "NorthStar also has a specific geographic footprint: **65% of their campaigns will run "
+            "in Canadian regions** (Ontario, British Columbia, Quebec, Alberta) next quarter.\n\n"
+            "Investigate how each channel's ROI has changed over time, and how geography affects performance."
         ),
         questions=[
             {
                 "key": "a",
                 "label": (
-                    "Question A: Under high competitor intensity (7 or above), which channel's ROI "
-                    "suffers the most compared to its performance under low intensity (3 or below)?"
+                    "Question A: Examine each channel's average ROI across the 12 quarters in the "
+                    "dataset (e.g., using a line chart). Which channel has shown the strongest "
+                    "improvement in ROI over time?"
                 ),
                 "options": CHANNELS,
             },
             {
                 "key": "b",
                 "label": (
-                    "Question B: Looking only at Canadian regions, which channel performs strongest "
-                    "relative to its overall platform-wide average?"
+                    "Question B: Compute each channel's average ROI using only Canadian regions "
+                    "(Ontario, British Columbia, Quebec, Alberta), then compare that to each channel's "
+                    "overall average ROI across all regions. Which channel benefits the most from "
+                    "a Canadian-heavy footprint — i.e., which channel has the largest positive gap "
+                    "between its Canadian ROI and its platform-wide ROI?"
                 ),
                 "options": CHANNELS,
             },
@@ -571,21 +601,23 @@ if st.session_state.current_challenge == 3:
     st.markdown("---")
 
     st.markdown(
-        "You now know which channels are trending up or down, which ones fail silently, "
-        "which ones crumble under competition, and where the regional strengths lie.\n\n"
+        "You now know which channels fail silently, why spreading your budget beats going all-in, "
+        "which channels are trending up or down, and where the geographic strengths lie.\n\n"
         "NorthStar needs you to identify the specific **channel–demographic combinations** that will "
         "deliver the best return under their conditions next quarter.\n\n"
-        "Using what you've learned in Challenges 0–2, identify the **top 5 channel–demographic pairs by ROI** "
-        "for NorthStar's upcoming quarter.\n\n"
-        "*The challenge doesn't tell you what filters to apply. That's your job as the analyst. "
-        "Think about what you've learned and decide which historical data best predicts NorthStar's future.*"
+        "NorthStar will be operating in a **high-competition environment** next quarter (check the board). "
+        "The dataset includes a `competitor_intensity` column (scaled 1–10). You need to decide on a "
+        "suitable threshold to filter for campaigns that ran under similarly competitive conditions, "
+        "then identify the **top 3 channel–demographic pairs by median ROI** within that filtered data.\n\n"
+        "*The challenge doesn't tell you the exact threshold to use. That's your job as the analyst. "
+        "Think about what constitutes 'high' competition and decide what best predicts NorthStar's future.*"
     )
 
     st.markdown("")
 
     with st.form("form_c3"):
         pairs = []
-        for i in range(1, 6):
+        for i in range(1, 4):
             label = "Pair 1 (Highest ROI)" if i == 1 else f"Pair {i}"
             col1, col2 = st.columns(2)
             with col1:
@@ -607,7 +639,7 @@ if st.session_state.current_challenge == 3:
     if submitted:
         # Check all selected
         if any(ch == "— Select —" or dem == "— Select —" for ch, dem in pairs):
-            st.error("Please select both a channel and demographic for all 5 pairs.")
+            st.error("Please select both a channel and demographic for all 3 pairs.")
         else:
             st.session_state.attempts["c3"] = st.session_state.attempts.get("c3", 0) + 1
             attempt_num = st.session_state.attempts["c3"]
@@ -615,13 +647,13 @@ if st.session_state.current_challenge == 3:
             # Validate
             pair1_correct = (pairs[0][0] == C3_PAIR1[0] and pairs[0][1] == C3_PAIR1[1])
 
-            submitted_pairs_2_to_5 = set()
+            submitted_pairs_2_to_3 = set()
             for ch, dem in pairs[1:]:
-                submitted_pairs_2_to_5.add((ch, dem))
+                submitted_pairs_2_to_3.add((ch, dem))
 
-            pairs_2_to_5_correct = submitted_pairs_2_to_5 == C3_PAIRS_2_TO_5
+            pairs_2_to_3_correct = submitted_pairs_2_to_3 == C3_PAIRS_2_TO_3
 
-            all_correct = pair1_correct and pairs_2_to_5_correct
+            all_correct = pair1_correct and pairs_2_to_3_correct
 
             log_response(
                 st.session_state.student_name,
@@ -644,8 +676,8 @@ if st.session_state.current_challenge == 3:
                 errors = []
                 if not pair1_correct:
                     errors.append("Pair 1 (highest ROI) is incorrect.")
-                if not pairs_2_to_5_correct:
-                    errors.append("One or more of Pairs 2–5 are incorrect.")
+                if not pairs_2_to_3_correct:
+                    errors.append("One or more of Pairs 2–3 are incorrect.")
                 st.error(
                     f"❌ Not quite. (Attempt #{attempt_num})\n\n" + "\n".join(f"• {e}" for e in errors)
                 )
@@ -653,12 +685,16 @@ if st.session_state.current_challenge == 3:
                 if attempt_num >= 3:
                     with st.expander("💡 Hint (click to expand)"):
                         st.markdown(
-                            "Think about what you learned in Challenges 0–2. What filters would create a subset "
-                            "of the data that best matches NorthStar's conditions next quarter? Consider:\n\n"
-                            "- What did you learn about missing data? How should you handle it?\n"
-                            "- What did you learn about trends over time? Should you use all 12 quarters equally?\n"
-                            "- What did you learn about competition and geography? How do you match NorthStar's conditions?\n\n"
-                            "Apply those lessons, then group by channel + demographic and rank by average ROI."
+                            "NorthStar's competitor intensity next quarter is 8 out of 10. "
+                            "To find campaigns that ran under similarly tough conditions, filter to "
+                            "`competitor_intensity >= 6` (this captures the upper range without being so "
+                            "restrictive that you lose too much data).\n\n"
+                            "Then, using zero-filled revenue, group by channel + demographic and compute "
+                            "the median ROI. The top 3 pairs are your answer.\n\n"
+                            "```\n"
+                            "high_comp = df[df['competitor_intensity'] >= 6]\n"
+                            "high_comp.groupby(['channel','demographic'])['roi'].median().sort_values(ascending=False).head(10)\n"
+                            "```"
                         )
     st.stop()
 
@@ -679,9 +715,20 @@ if st.session_state.current_challenge == 4:
         "channel–demographic pairs.\n\n"
         "Enter dollar amounts in each cell. Remember:\n"
         "- Total must equal exactly **$100,000**\n"
-        "- Any pair with less than **$3,000** allocated generates **zero** revenue\n"
         "- Concentrating too much in one pair means diminishing returns\n"
     )
+
+    st.markdown("---")
+
+    # Optional notebook upload (accepted but not stored — just proves they did the work)
+    st.markdown("**Upload your analysis notebook** *(optional but recommended)*")
+    uploaded_notebook = st.file_uploader(
+        "Upload the .ipynb file containing your analysis. This helps us verify your work.",
+        type=["ipynb"],
+        key="notebook_upload",
+    )
+    if uploaded_notebook is not None:
+        st.success(f"✅ Notebook received: **{uploaded_notebook.name}**")
 
     st.markdown("---")
 
@@ -739,15 +786,6 @@ if st.session_state.current_challenge == 4:
             else:
                 st.markdown("✅ **Budget fully allocated**")
 
-        # Warnings for sub-$3K nonzero allocations
-        warnings = []
-        for (ch, dem), val in allocations.items():
-            if 0 < val < 3000:
-                warnings.append(f"⚠️ {ch} × {dem}: ${val:,} is below $3,000 minimum — will generate $0 revenue")
-        if warnings:
-            for w in warnings:
-                st.warning(w)
-
         submitted = st.form_submit_button("🚀 Submit Final Allocation", type="primary")
 
     if submitted:
@@ -757,8 +795,8 @@ if st.session_state.current_challenge == 4:
             # Save
             alloc_data = {f"{ch}|{dem}": val for (ch, dem), val in allocations.items()}
             alloc_data["total"] = total
-            alloc_data["num_pairs"] = sum(1 for v in allocations.values() if v >= 3000)
-            alloc_data["sub_3k_pairs"] = sum(1 for v in allocations.values() if 0 < v < 3000)
+            alloc_data["num_pairs"] = sum(1 for v in allocations.values() if v > 0)
+            alloc_data["notebook_uploaded"] = uploaded_notebook.name if uploaded_notebook else None
 
             log_response(
                 st.session_state.student_name,
@@ -771,10 +809,6 @@ if st.session_state.current_challenge == 4:
                 "✅ **Allocation submitted!** Your response has been recorded.\n\n"
                 f"You allocated across **{alloc_data['num_pairs']}** pairs."
             )
-            if alloc_data["sub_3k_pairs"] > 0:
-                st.warning(
-                    f"⚠️ {alloc_data['sub_3k_pairs']} pair(s) are below $3,000 and will generate $0 revenue."
-                )
             st.balloons()
 
     # "Have You Considered?" panel
@@ -786,8 +820,8 @@ if st.session_state.current_challenge == 4:
             "- Your client's footprint is 65% Canadian next quarter. Have you looked at how channels "
             "perform specifically in Canadian regions (Ontario, BC, Quebec, Alberta)?\n\n"
             "- Some channels are more affected by competitor intensity than others. "
-            "Did your analysis account for this beyond just filtering to intensity ≥ 6?\n\n"
+            "Did your analysis account for this?\n\n"
             "- Have you looked at which `creative_type` drives the best performance for your top pairs?\n\n"
             "- Are you sure about the pairs you chose NOT to invest in? "
-            "Is there a pair outside your top 5 that might still be worth $3K–$5K?"
+            "Is there a pair outside your top 3 that might still be worth including?"
         )
