@@ -529,11 +529,10 @@ if st.session_state.current_challenge == 1:
                 "key": "b",
                 "label": (
                     "Question B: Your manager wants to go all-in on the best channel with a few "
-                    "Large campaigns (budget tier = 'Large (>$20K)'). You think it's smarter to spread "
-                    "the budget across many Small campaigns (budget tier = 'Small (<$5K)'). "
-                    "Compute the median ROI of Large campaigns on the best channel, then compute the "
-                    "median ROI of Small campaigns across ALL four channels combined. "
-                    "Which strategy earns more per dollar spent?"
+                    "Large campaigns. You think it's smarter to spread the budget across many "
+                    "Small campaigns. Filter the data to Large campaigns on the best channel and "
+                    "compute the median ROI. Then filter to Small campaigns across ALL four channels "
+                    "combined and compute the median ROI. Which strategy earns more per dollar spent?"
                 ),
                 "options": [
                     "Go all-in on the best channel with Large campaigns",
